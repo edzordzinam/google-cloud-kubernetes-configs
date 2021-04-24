@@ -1,0 +1,53 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: sample-elastic
+spec:
+  version: 7.5.2
+  config:
+    index.refresh_interval: 30s
+  http:
+      tls:
+        selfSignedCertificate:
+          subjectAltNames:
+          - ip: 34.70.154.7
+          - dns: search.sample.app
+          - ip: 35.238.88.144
+          - dns: kibana.sample.app
+      service:
+        spec:
+          type: LoadBalancer
+  updateStrategy:
+    changeBudget:
+      maxSurge: 3
+      maxUnavailable: 2
+  podDisruptionBudget:
+    spec:
+      minAvailable: 1
+      selector:
+        matchLabels:
+          elasticsearch.k8s.elastic.co/cluster-name: sample-elastic
+  nodeSets:
+  - name: default
+    count: 5
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+    podTemplate:
+      spec:
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
+    volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 100Gi
+            storageClassName: standard

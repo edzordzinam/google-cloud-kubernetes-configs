@@ -1,0 +1,63 @@
+apiVersion: mongodb.com/v1
+kind: MongoDBOpsManager
+metadata:
+  name: ops-manager
+  namespace: mongodb
+spec:
+  # the version of Ops Manager distro to use
+  version: 4.2.4
+  replicas: 3
+
+  # the name of the secret containing admin user credentials.
+  adminCredentials: ops-manager-admin-secret
+  clusterDomain: mongoops.net
+
+  # optional, enabled by default
+  # Allows to configure backup in Ops Manager
+  backup:
+    enabled: true
+    # optional, created by default if backup is enabled.
+    # Configures Head db storage parameters
+    headDB:
+      # optional. Default storage is 30G
+      storage: 50Gi
+      storageClass: ssd-xfs
+    # Configures the list of Oplog Store Configs
+    opLogStores:
+      - name: oplog1
+        mongodbResourceRef:
+          name: om-mongodb-oplog
+        # optional, specify if oplog database has SCRAM-SHA authentication enabled
+        mongodbUserRef:
+          name: admin-user
+    # Configures the list of S3 Snapshot Configs
+
+  externalConnectivity:
+    type: LoadBalancer
+
+  persistent : true
+  podSpec:
+    podTemplate:
+      spec:
+        dnsConfig:
+          searches:
+            - mongoops.net
+
+
+  # the Replica Set backing Ops Manager.
+  # appDB has the SCRAM-SHA authentication mode always enabled
+  applicationDatabase:
+    members: 3
+    version: 4.2.3
+    logLevel: WARN
+
+    podSpec:
+      podTemplate:
+        spec:
+          dnsConfig:
+            searches:
+              - mongoops.net
+      persistence:
+        single:
+          storage: 16Gi
+          storageClass: ssd-xfs

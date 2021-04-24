@@ -1,0 +1,65 @@
+apiVersion: apm.k8s.elastic.co/v1
+kind: ApmServer
+metadata:
+  name: apm-server
+  namespace: default
+spec:
+  version: 7.5.2
+  count: 1
+  secureSettings:
+  - secretName: apm-secret-settings
+  http:
+    tls:
+      certificate:
+        secretName: sample-certs
+    service:
+      spec:
+        type: LoadBalancer
+  config:
+    apm-server:
+      rum:
+        enabled: true
+        event_rate:
+          limit: 300
+          lru_size: 1000
+        allow_origins: ["*"]
+        library_pattern: "node_modules|bower_components|~"
+        exclude_from_grouping: "^/webpack"
+        source_mapping:
+          enabled: true
+          cache:
+            expiration: 5
+          index_pattern: "apm-*-sourcemap*"
+    monitoring:
+      enabled: true
+      elasticsearch: launch-elastic
+    kibana:
+      enabled: true
+      host: "kibana.sample.app:5601"
+      protocol: "https"
+      username: "elastic"
+      password: "${ES_PASSWORD}"
+    output:
+      elasticsearch:
+        hosts: ["search.sample.app:9200"]
+        username: elastic
+        password: "${ES_PASSWORD}"
+        protocol: "https"
+        ssl.certificate_authorities: ["/usr/share/apm-server/config/elasticsearch-ca/tls.crt"]
+        bulk_max_size: 5120
+        worker: 3
+    queue.mem.events: 15360
+  podTemplate:
+      spec:
+        containers:
+        - name: apm-server
+          volumeMounts:
+          - mountPath: /usr/share/apm-server/config/elasticsearch-ca
+            name: elasticsearch-ca
+            readOnly: true
+        volumes:
+        - name: elasticsearch-ca
+          secret:
+            defaultMode: 420
+            optional: false
+            secretName: es-ca

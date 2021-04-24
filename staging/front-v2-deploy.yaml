@@ -1,0 +1,65 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: stage-ux-v2
+  namespace: default
+  labels:
+    app: stage-ux-v2
+spec:
+  replicas: 2 # number of pods
+  template:
+    metadata:
+      labels:
+        app: stage-ux-v2
+    spec:
+      containers:
+        - name: stage-ux-sample-v2-image
+          image: gcr.io/sample-xxxxx-production-v2/stage-ux-sample-v2-image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              protocol: TCP
+            - containerPort: 443
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: staging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stage-ux-v2-service
+spec:
+  selector:
+    app: stage-ux-v2
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      name: stagehttp
+      port: 80
+      targetPort: 80
+    - protocol: TCP
+      name: stagehttps
+      port: 443
+      targetPort: 443
+
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: stage-ux-v2-hpa
+  namespace: default
+  labels:
+    app: stage-ux-v2-hpa
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: stage-ux-v2
+    apiVersion: apps/v1beta1
+  minReplicas: 2
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 80          

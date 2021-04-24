@@ -1,0 +1,46 @@
+
+apiVersion: mongodb.com/v1
+kind: MongoDBUser
+metadata:
+  name: sample-replica-set-x509-user
+spec:
+  username: CN=my-replica-set-x509-user,OU=cloud,O=MongoDB,L=New York,ST=New York,C=US
+  db: $external
+  mongodbResourceRef:
+    name: sample-replica-set
+  roles:
+    - db: admin
+      name: dbOwner
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-scram-secret
+type: Opaque
+stringData:
+  password: RQZF6eQ9v62urF276FdGmjpv1tF8Z8Hw@332!
+
+---
+apiVersion: mongodb.com/v1
+kind: MongoDBUser
+metadata:
+  name: superdb-admin
+spec:
+  passwordSecretKeyRef:
+    name: admin-scram-secret # the name of the secret that stores this user's password
+    key: password # the key in the secret that stores the password
+  username: superdb_admin
+  db: admin
+  mongodbResourceRef:
+    name: sample-replica-set # The name of the MongoDB resource this user will be added to
+  roles:
+    - db: admin
+      name: clusterAdmin
+    - db: admin
+      name: userAdminAnyDatabase
+    - db: admin
+      name: readWrite
+    - db: admin
+      name: userAdminAnyDatabase

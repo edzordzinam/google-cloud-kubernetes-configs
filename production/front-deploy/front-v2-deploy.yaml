@@ -1,0 +1,70 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ux-v2
+  namespace: default
+  labels:
+    app: ux-v2
+spec:
+  replicas: 2 # number of pods
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: ux-v2
+    spec:
+      containers:
+        - name: ux-sample-v2-image
+          image: gcr.io/sample-xxxxx-production-v2/ux-sample-v2-image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              protocol: TCP
+            - containerPort: 443
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: production
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ux-v2-svc
+spec:
+  selector:
+    app: ux-v2
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      name: prodhttp
+      port: 80
+      targetPort: 80
+    - protocol: TCP
+      name: prodhttps
+      port: 443
+      targetPort: 443
+
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ux-v2-hpa
+  namespace: default
+  labels:
+    app: ux-v2
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: ux-v2
+    apiVersion: apps/v1beta1
+  minReplicas: 2
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 80          

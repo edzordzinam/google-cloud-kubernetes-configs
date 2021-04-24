@@ -1,0 +1,55 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: staging-elastic
+spec:
+  version: 7.5.2
+  http:
+      tls:
+        selfSignedCertificate:
+          disabled: true
+      service:
+        spec:
+          type: LoadBalancer
+  nodeSets:
+  - name: default
+    count: 10
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+    podTemplate:
+      spec:
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
+    volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 50Gi
+            storageClassName: standard
+---
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: staging-kibana
+spec:
+  version: 7.5.2
+  count: 2
+  http:
+      tls:
+        selfSignedCertificate:
+          disabled: true
+      service:
+        spec:
+          type: LoadBalancer
+          loadBalancerIP: 0.0.0.0
+  elasticsearchRef:
+    name: staging-elastic

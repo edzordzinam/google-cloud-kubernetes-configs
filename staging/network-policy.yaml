@@ -1,0 +1,12 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: stage-api-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: api-v2
+  ingress:
+  - ports:
+    - port: 80
+    - port: 443

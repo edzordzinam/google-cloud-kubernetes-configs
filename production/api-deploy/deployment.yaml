@@ -1,0 +1,112 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: api-v2
+  namespace: default
+  labels:
+    app: api-v2
+spec:
+  replicas: 2 # number of pods
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 50%
+  template:
+    metadata:
+      labels:
+        app: api-v2
+    spec:
+      containers:
+        - name: sample-v2-image
+          image: gcr.io/sample-xxxxx-production-v2/sample-v2-image
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: websocket
+              containerPort: 9009
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+            initialDelaySeconds: 5
+            timeoutSeconds: 300
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+            initialDelaySeconds: 5
+            timeoutSeconds: 60
+            periodSeconds: 120
+            successThreshold: 1
+            failureThreshold: 5
+          env:
+            - name: NODE_ENV
+              value: production
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-v2-svc
+spec:
+  selector:
+    app: api-v2
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+
+---
+
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-v2-hpa
+  namespace: default
+  labels:
+    app: api-v2
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: api-v2
+    apiVersion: apps/v1beta1
+  minReplicas: 2
+  maxReplicas: 2
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 80
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: api-v2-ingress
+  labels:
+    access: api-v2-ingress
+    certupdate: august08
+  annotations:
+      kubernetes.io/ingress.global-static-ip-name: "api-v2-ip"
+      ingress.kubernetes.io/tls-minimum-version: "1.2"
+spec:
+  tls:
+  - secretName: v2certificates
+  rules:
+  - host: api.sample.app
+    http:
+      paths:
+      - backend:
+          serviceName: api-v2
+          servicePort: 8080

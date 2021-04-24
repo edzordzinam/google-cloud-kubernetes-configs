@@ -1,0 +1,20 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: sample-kibana
+spec:
+  version: 7.5.2
+  count: 1
+  http:
+      tls:
+        selfSignedCertificate:
+          subjectAltNames:
+          - ip: 34.70.154.7
+          - dns: search.sample.app
+          - ip: 35.238.88.144
+          - dns: kibana.sample.app
+      service:
+        spec:
+          type: LoadBalancer
+  elasticsearchRef:
+    name: sample-elastic

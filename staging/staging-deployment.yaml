@@ -1,0 +1,67 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: stage-api-v2
+  namespace: default
+  labels:
+    app: stage-api-v2
+spec:
+  replicas: 10 # number of pods
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 5
+  template:
+    metadata:
+      labels:
+        app: stage-api-v2
+    spec:
+      containers:
+        - name: stage-sample-v2-image
+          image: gcr.io/sample-xxxxx-production-v2/stage-sample-v2-image
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: websocket
+              containerPort: 9009
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+            initialDelaySeconds: 5
+            timeoutSeconds: 300
+            periodSeconds: 60
+            successThreshold: 1
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+            initialDelaySeconds: 5
+            timeoutSeconds: 60
+            periodSeconds: 120
+            successThreshold: 1
+            failureThreshold: 5
+          env:
+            - name: NODE_ENV
+              value: staging
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stage-api-v2
+spec:
+  selector:
+    app: stage-api-v2
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+
+

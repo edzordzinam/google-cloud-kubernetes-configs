@@ -1,0 +1,41 @@
+apiVersion: mongodb.com/v1
+kind: MongoDB
+metadata:
+  name: sample-replica-set
+  namespace: mongodb
+spec:
+  members: 3
+  version: 4.2.3
+  type: ReplicaSet
+
+  # log level affects the level of logging for the agent. Use DEBUG cautiously as log file size may grow very quickly
+  logLevel: WARN
+
+  #clusterDomain: sample.app
+  clusterDomain: sample.app
+
+  persistent : true
+
+  opsManager:
+    configMapRef:
+      name: ops-manager-connection
+  credentials: om-sample-dagadu-credentials
+  security:
+#    tls:
+#      enabled: true
+    authentication:
+      enabled: true
+      modes: ["SCRAM", "X509"] # Valid authentication modes are "SCRAM' and "X509"
+#
+  podSpec:
+    # note: it's important to always specify memory otherwise wired tiger cache will be calculated incorrectly and
+    # monitoring tools will report the size of Kubernetes node instead of the real size of the container
+    # "multiple" persistence allows to mount different directories to different Persistent Volumes
+    dnsConfig:
+      searches:
+        - sample.app
+    persistence:
+      single:
+        storage: 100Gi
+        storageClass: ssd-xfs
+

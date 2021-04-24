@@ -1,0 +1,2 @@
+gcloud builds submit --tag gcr.io/sample-xxxxx-production-v2/sample-v2-image .
+gcloud builds submit --tag gcr.io/sample-xxxxx-production-v2/ux-sample-v2-image .
